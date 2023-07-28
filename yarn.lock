@@ -6305,6 +6305,11 @@
   "resolved" "https://registry.npmjs.org/react-is/-/react-is-17.0.2.tgz"
   "version" "17.0.2"
 
+"react-native-aes-crypto@^2.1.1":
+  "integrity" "sha512-huAt7k43myFiY0bPnvoaCP0oBjTMw4VsL2mjkmCPzzDA56Sm3ps5xXIejPo5Z9qfnei9iijHzATV8eRNMEPtbQ=="
+  "resolved" "https://registry.npmjs.org/react-native-aes-crypto/-/react-native-aes-crypto-2.1.1.tgz"
+  "version" "2.1.1"
+
 "react-native-blob-util@^0.17.3":
   "integrity" "sha512-nO4VXIPtCrtf3mzCiOkdrXsmc8WmOLNSziS7dCnQ6kSyg4LOLXP4mQOFqfiNxt78n7cZ0QOF5CdUY/sIZZ2aOA=="
   "resolved" "https://registry.npmjs.org/react-native-blob-util/-/react-native-blob-util-0.17.3.tgz"
