@@ -3,7 +3,7 @@ import React from 'react';
 import {StatusBar} from 'react-native';
 import StackNavigator from './src/navigation/navigation';
 
-function App(): JSX.Element {
+function App() {
   return (
     <>
       <StatusBar animated={true} barStyle="dark-content" backgroundColor="#fff"/>
