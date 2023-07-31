@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useEffect, useRef, useState} from 'react';
-import {Button, IconButton} from 'react-native-paper';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, IconButton } from 'react-native-paper';
 import * as RNFS from 'react-native-fs';
 import forge from 'node-forge';
-import Aes from 'react-native-aes-crypto';
 import Video from "react-native-video";
+import RenderIf from '../../component/renderIf';
 
 const FILE_ENCRYPTION_BLOCKS = 255;
 const KEY = 'video-encryption-testing-key-123';
@@ -22,6 +22,9 @@ const Home = () => {
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const [refresh, setRefresh] = useState(false);
   const videoRef = useRef();
+  const [videoSourceUrl, setVideoUrl] = useState()
+  const currentSeekTime = useRef(0)
+  const [downloadedChunk, setDownloadedChunk] = useState(0)
 
   useEffect(() => {
     showFile();
@@ -30,10 +33,11 @@ const Home = () => {
   const downloadFile = async () => {
     //video-file/download/I9VJBQJZFT1Si4npSXAc43cdv6URLvYs6rpsVY4k.mp4.enc/video.mp4
     //video-file/download/kjMTDSf38tq6IZl4buxiTrbx2H23TNI4rHXOrmXm.mp4.enc/video_test.enc
+
     await RNFS.downloadFile({
       fromUrl:
-        'http://172.16.30.28:96/api/video-file/download/MAo2sWl701s3hTnxLG0mLTnjfyfwQMwN8HK8SwuD.mp4.enc/IMG_0622.mp4',
-      toFile: RNFS.DocumentDirectoryPath + '/' + 'this_is_big_video1.enc',
+        'http://192.168.100.14:8000/api/video-file/download/XZ4XSYDfEaTLprc81ZfvBPINekcF6OTAZfJJxXhp.ts.enc/1-%20Introduction.mp4',
+      toFile: RNFS.DocumentDirectoryPath + '/' + 'videoTest2.enc',
       progress: res => {
         console.log('Download Progress ::', res);
       },
@@ -46,11 +50,11 @@ const Home = () => {
     setFileInfoList(fileList);
   };
 
-  const playVideo = async filePath => {};
+  const playVideo = async filePath => { };
 
   const decrypt = async (fileName) => {
     const sourcePath = RNFS.DocumentDirectoryPath + '/' + fileName;
-    const destPath = RNFS.DocumentDirectoryPath + '/' + 'this_is_big_video1.mp4';
+    const destPath = RNFS.DocumentDirectoryPath + '/' + 'this_is_big_video3.mp4';
 
     // let content = await RNFS.readFile(RNFS.DocumentDirectoryPath + '/' + 'thisisimage.jpg', 'ascii');
     // console.log(content);
@@ -75,10 +79,8 @@ const Home = () => {
         'ascii',
       );
 
-      console.log(16 * (FILE_ENCRYPTION_BLOCKS + 1));
-
       let decipher = forge.cipher.createDecipher('AES-CBC', KEY);
-      decipher.start({iv: iv});
+      decipher.start({ iv: iv });
       decipher.update(forge.util.createBuffer(ciphertext));
       var result = decipher.finish();
       console.log('Cipher Result::', result);
@@ -103,6 +105,13 @@ const Home = () => {
       iv = ciphertext.substring(0, 16);
 
       // Write the decrypted data to the destination file
+      // if ((i !== 0 && i % 50 == 0) || i == numberOfChunks - 1) {
+      if (i == 50) {
+        // console.log("Time Segment ::", i);
+        // console.log("Current Seek Time ::", currentSeekTime.current);
+        setVideoUrl('file://' + RNFS.DocumentDirectoryPath + '/' + 'this_is_big_video3.mp4')
+        // setDownloadedChunk(i)
+      }
       await RNFS.appendFile(destPath, decryptedText, 'ascii');
     }
 
@@ -110,60 +119,60 @@ const Home = () => {
     return true;
   };
 
-  const decryptFile = async (fileName, decryptedFileName, key) => {
-    const filePath = RNFS.DocumentDirectoryPath + '/' + fileName;
-    const fileStat = await RNFS.stat(filePath);
-    let iv = await RNFS.read(filePath, 16, 0, 'ascii');
+  // const decryptFile = async (fileName, decryptedFileName, key) => {
+  //   const filePath = RNFS.DocumentDirectoryPath + '/' + fileName;
+  //   const fileStat = await RNFS.stat(filePath);
+  //   let iv = await RNFS.read(filePath, 16, 0, 'ascii');
 
-    let content = await RNFS.readFile(RNFS.DocumentDirectoryPath + '/' + decryptedFileName, 'ascii');
-    console.log(content);
+  //   let content = await RNFS.readFile(RNFS.DocumentDirectoryPath + '/' + decryptedFileName, 'ascii');
+  //   console.log(content);
 
-    const numberOfChunks = Math.ceil(
-      (fileStat.size - 16) / NUMBER_OF_BYTE_TO_READ,
-    );
-    let decipher = forge.cipher.createDecipher('AES-CBC', key);
+  //   const numberOfChunks = Math.ceil(
+  //     (fileStat.size - 16) / NUMBER_OF_BYTE_TO_READ,
+  //   );
+  //   let decipher = forge.cipher.createDecipher('AES-CBC', key);
 
-    try {
-      for (let j = 0; j < numberOfChunks; j++) {
-        const cipherText = await RNFS.read(
-          filePath,
-          NUMBER_OF_BYTE_TO_READ,
-          j * NUMBER_OF_BYTE_TO_READ,
-          'ascii',
-        );
-        decipher.start({iv: iv});
-        decipher.update(forge.util.createBuffer(cipherText));
-        var result = decipher.finish();
-        console.log('Cipher Result::', result);
-        await RNFS.appendFile(
-          RNFS.DocumentDirectoryPath + '/' + decryptedFileName,
-          decipher.output.getBytes(),
-          'ascii',
-        );
-        iv = cipherText.substring(0, 16);
-        console.log('Next IV::', iv);
-      }
-      setCurrentVideoUrl(RNFS.DocumentDirectoryPath + '/' + decryptedFileName);
-      console.log('Complete Decrypting File!!');
-      showFile();
-    } catch (error) {
-      console.log('File Decryption Fail!!', error);
-    }
-  };
+  //   try {
+  //     for (let j = 0; j < numberOfChunks; j++) {
+  //       const cipherText = await RNFS.read(
+  //         filePath,
+  //         NUMBER_OF_BYTE_TO_READ,
+  //         j * NUMBER_OF_BYTE_TO_READ,
+  //         'ascii',
+  //       );
+  //       decipher.start({ iv: iv });
+  //       decipher.update(forge.util.createBuffer(cipherText));
+  //       var result = decipher.finish();
+  //       console.log('Cipher Result::', result);
+  //       await RNFS.appendFile(
+  //         RNFS.DocumentDirectoryPath + '/' + decryptedFileName,
+  //         decipher.output.getBytes(),
+  //         'ascii',
+  //       );
+  //       iv = cipherText.substring(0, 16);
+  //       console.log('Next IV::', iv);
+  //     }
+  //     setCurrentVideoUrl(RNFS.DocumentDirectoryPath + '/' + decryptedFileName);
+  //     console.log('Complete Decrypting File!!');
+  //     showFile();
+  //   } catch (error) {
+  //     console.log('File Decryption Fail!!', error);
+  //   }
+  // };
 
-  const handleRefresh = () => {};
+  const handleRefresh = () => { };
 
-  const renderItem = () => {};
-
+  const renderItem = () => { };
+  {console.log('re render occuer')}
   return (
     <>
-      <SafeAreaView style={{flex: 1}}>
-        <ScrollView style={{flex: 1}}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }}>
           <Button
             mode="contained"
             color={'#000'}
-            style={{margin: 20}}
-            labelStyle={{padding: 7}}
+            style={{ margin: 20 }}
+            labelStyle={{ padding: 7 }}
             onPress={downloadFile}>
             Download
           </Button>
@@ -195,9 +204,22 @@ const Home = () => {
               </View>
             </TouchableOpacity>
           ))}
-
-          <Image source={{ uri: 'file://' + RNFS.DocumentDirectoryPath + '/' + 'thisisimage.jpg' }}  style={{ width: 300, height: 300 }}/>
-           <Video source={{ uri: 'file://' + RNFS.DocumentDirectoryPath + '/' + 'this_is_big_video1.mp4' }} style={{ width: '100%', margin: 15, height: 300 }} />
+          <RenderIf isTrue={videoSourceUrl}>
+            <Video
+              // key={downloadedChunk}
+              // ref={videoRef}
+              source={{ uri: videoSourceUrl }}
+              control={true}
+              // onLoad={() => {
+              //   console.log("Video component loaded");
+              //   videoRef.current.seek(currentSeekTime.current)
+              // }}
+              // onProgress={(progress) => {
+              //   console.log("Progres::", progress);
+              //   currentSeekTime.current = progress.seekableDuration
+              // }}
+              style={{ width: '100%', margin: 15, height: 300 }} />
+          </RenderIf>
         </ScrollView>
       </SafeAreaView>
     </>
